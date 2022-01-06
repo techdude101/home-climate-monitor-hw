@@ -35,5 +35,5 @@ const char* rootCACertificate = \
 "aiSrjKK5seTs4yum2HyT6Qr+Jo72zgOacQ376VF0gjvs+i/stloHtSqltCTwB2xz\n" \
 "ftBzkX21NHj/P2khh10oXd9PcyBDk2hC8dqQ+LjujJW3Q3yyTrEURB8gECEDq6ec\n" \
 "GPbBJOVpSxsseOqyVaMaikOn4b5M0IDAUr2dCwFrYc/dT1FjGqICDO6o3HNk7NG5\n" \
-"5scgQgnTAJf3aIrT5YISNXG9NmRb\n" \
-"-----END CERTIFICATE-----\n";
+"5scgQgnTAJf3aIrT5YISNXG9NmRb \
+-----END CERTIFICATE-----\n";

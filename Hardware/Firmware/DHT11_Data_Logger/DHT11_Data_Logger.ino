@@ -1,14 +1,10 @@
 /*
  * Project: Temperature and Pressure data logger 
- * Description: Read data from a bmp085 sensor and store it in a database
+ * Description: Read data from a DHT11 / DHT22 sensor and store it in a database
 */ 
 #include <Arduino.h>
 
-#include <Wire.h>
-#include <SPI.h>
-#include <Adafruit_Sensor.h>
-#include <Adafruit_BMP085.h>
-
+#include <DHT.h>
 #include <WiFi.h>
 #include <HTTPClient.h>
 
@@ -20,14 +16,12 @@
 #define DEBUG 0
 #define USE_STATIC_IP FALSE // Change to TRUE for static IP & DNS. Update WiFi_Info.h
 
+// #### Buffer size for snprintf ####
 #define BUF_SIZE 150
 
-//#### BMP085 Pins ####
-#define BMP_SCK 22
-#define BMP_MISO 21
-#define BMP_MOSI 11
-
-#define SEALEVELPRESSURE_HPA (1013.25)
+//#### Sensor Config ####
+#define DHT_SENSOR_PIN  21 // ESP32 pin GIOP21 connected to DHT11 / DHT22 sensor
+#define DHT_SENSOR_TYPE DHT11 // DHT11 or DHT22
 
 //#### Server Config ####
 #define URL "http://<yourherokuapp>.com/data/"
@@ -35,10 +29,10 @@
 
 const char* API_KEY = "<device API key>";
 
-Adafruit_BMP085 bmp; // I2C
+DHT dht_sensor(DHT_SENSOR_PIN, DHT_SENSOR_TYPE);
 
 //#### Device serial number ####
-uint16_t serial_num = 1; // CHANGE ME
+uint16_t serial_num = 5; // CHANGE ME
 
 /*******************************************************************************
 * Function Name: printValues
@@ -56,18 +50,13 @@ uint16_t serial_num = 1; // CHANGE ME
 *******************************************************************************/
 void printValues() {
     Serial.print("Temperature = ");
-    Serial.print(bmp.readTemperature());
+    Serial.print(dht_sensor.readTemperature());
     Serial.println(" *C");
 
-    Serial.print("Pressure = ");
+    Serial.print("Humidity = ");
 
-    Serial.print(bmp.readPressure() / 100.0F);
-    Serial.println(" hPa");
-
-   Serial.print("Approx. Altitude = ");
-   Serial.print(bmp.readAltitude(SEALEVELPRESSURE_HPA));
-   Serial.println(" m");
-
+    Serial.print(dht_sensor.readHumidity());
+    Serial.println(" %");
     Serial.println();
 }
 
@@ -121,14 +110,9 @@ void setClock() {
 void setup() {
   // Start the serial port
   Serial.begin(115200);
-
-  unsigned status;
   
-  status = bmp.begin();  
-  if (!status) {
-      Serial.println("Could not find a valid bmp085 sensor, check wiring, address, sensor ID!");
-      while (1);
-  }
+  // Initialize the DHT sensor
+  dht_sensor.begin(); 
   
   // Configure WiFi and connect to the network
   #if USE_STATIC_IP == TRUE
@@ -164,46 +148,6 @@ void setup() {
 }
 
 /*******************************************************************************
-* Function Name: sendHTTPPost
-********************************************************************************
-*
-* Summary:
-*  This routine sends an HTTP POST request
-*
-* Parameters:
-*  String url:  URL
-*  String json: Data / payload in json format
-*
-* Return:
-*  int:         HTTP response code
-*
-*******************************************************************************/
-int sendHTTPPost(String url, String json) {
-  HTTPClient http;
-  
-  http.begin(url); // HTTP
-  http.addHeader("Content-Type", "application/json");
-  http.addHeader("X-API-Key", API_KEY);
-  int httpCode = http.POST(json);
-  // httpCode will be negative on error
-  if (httpCode > 0) {
-    // HTTP header has been send and Server response header has been handled
-    Serial.printf("[HTTP] POST... code: %d\n", httpCode);
-
-    // file found at server
-    if (httpCode == HTTP_CODE_OK || httpCode == HTTP_CODE_MOVED_PERMANENTLY) {
-      String payload = http.getString();
-      Serial.println(payload);
-    }
-  } else {
-    Serial.printf("[HTTP] POST... failed, error: %s\n", http.errorToString(httpCode).c_str());
-  }
-  
-  http.end();
-  return httpCode;
-}
-
-/*******************************************************************************
 * Function Name: sendHTTPPostSecure
 ********************************************************************************
 *
@@ -233,7 +177,7 @@ int sendHTTPPostSecure(String url, String json) {
         Serial.print("[HTTPS] POST...\n");
         // start connection and send HTTP header
         https.addHeader("Content-Type", "application/json");
-        https.addHeader("X-API-Key", API_KEY);
+        https.addHeader("X-API-Key", API_KEY); // TODO: Add api_key + part of secret key
         int httpCode = https.POST(json);
   
         // httpCode will be negative on error
@@ -283,14 +227,14 @@ void loop() {
     printValues(); // Debugging
   #endif
   
-  float temp = bmp.readTemperature();
-  float pressure = bmp.readPressure() / 100.0F;
+  float temp = dht_sensor.readTemperature();
+  float humidity = dht_sensor.readHumidity();
    
   // TODO: Check sensor readings are sensible
 
-  //  String json = "{\"serial\": 12345, \"temperature\": 123.45, \"humidity\": 59.43}";
+  //  String json = "{\"serial\": 12345, \"temperature\": 123.4, \"humidity\": 59.4}";
   char json[BUF_SIZE];
-  snprintf(json, sizeof json, "{\"serial\": %d, \"temperature\": %.2f, \"humidity\":%.2f }", serial_num, temp, (pressure / 100.0f));
+  snprintf(json, sizeof json, "{\"serial\": %d, \"temperature\": %.2f, \"humidity\":%.2f }", serial_num, temp, humidity);
 //  sendHTTPPost(String(URL + String(serial_num)), String(json));
   sendHTTPPostSecure(String(URL_SECURE + String(serial_num)), String(json));
   
