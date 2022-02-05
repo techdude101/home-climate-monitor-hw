@@ -23,3 +23,14 @@ Root / Admin API key
 12. Upload the firmware to the device
 13. Once uploaded press the reset button on the ESP32 module
 14. Open the serial monitor to verify the device successfully connects to the WiFi network, reads the sensor & transmits the data to the server
+
+## Troubleshooting
+  Problem:  
+  Waiting for NTP time sync: .......................................................
+  [HTTPS] POST... failed, error: connection refused
+  
+  Solution:  
+  Check the network configuration in WiFi_Info.h  
+    - local_IP  
+    - gateway  
+    - subnet  
