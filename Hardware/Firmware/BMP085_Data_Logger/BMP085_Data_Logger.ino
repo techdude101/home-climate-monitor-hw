@@ -18,6 +18,8 @@
 #include "rootCA.h"
 
 #define DEBUG 0
+#define TRUE 1
+#define FALSE 0
 #define USE_STATIC_IP FALSE // Change to TRUE for static IP & DNS. Update WiFi_Info.h
 
 #define BUF_SIZE 150
