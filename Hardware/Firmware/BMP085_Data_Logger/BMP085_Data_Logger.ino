@@ -293,8 +293,21 @@ void loop() {
   //  String json = "{\"serial\": 12345, \"temperature\": 123.45, \"humidity\": 59.43}";
   char json[BUF_SIZE];
   snprintf(json, sizeof json, "{\"serial\": %d, \"temperature\": %.2f, \"humidity\":%.2f }", serial_num, temp, (pressure / 100.0f));
-//  sendHTTPPost(String(URL + String(serial_num)), String(json));
-  sendHTTPPostSecure(String(URL_SECURE + String(serial_num)), String(json));
+  
+  // Check if WiFi is connected
+  int wifiStatusCode = WiFi.status();
+  if (wifiStatusCode != WL_CONNECTED) {
+    Serial.print("WiFi not connected!\n Code: ");
+    Serial.println(wifiStatusCode);
+    
+    // Try disconnecting and reconnecting to the wifi network
+    WiFi.disconnect();
+    WiFi.begin(ssid, password);
+  }
+
+  if (wifiStatusCode == WL_CONNECTED) {
+    sendHTTPPostSecure(String(URL_SECURE + String(serial_num)), String(json));
+  }
   
   Serial.println();
   Serial.println("Waiting 30s before the next round...");
